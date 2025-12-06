@@ -1,20 +1,33 @@
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import  { hashPassword, comparePassword } from '../services/auth.service.js';
+import { hashPassword, comparePassword } from '../services/auth.service.js';
 import { generateToken } from '../services/jwt.service.js';
 
 const prisma = new PrismaClient();
 
-export const register = async ( req : Request, res: Response) =>{
+export const register = async (req: Request, res: Response) => {
     console.log(req.body);
-    const { correo, contrasena, nombre } = req.body;
+    const { correo, contrasena, nombre, rol } = req.body;
     try {
         const hashed = await hashPassword(contrasena);
         const user = await prisma.usuario.create({
-            data: { correo, contrasena: hashed , nombre },
+            data: {
+                correo,
+                contrasena: hashed,
+                nombre,
+                rol: rol || 'estudiante' // Por defecto es estudiante
+            },
         });
         const token = generateToken({ id: user.id_usuario, correo: user.correo });
-        res.json({ token, usuario: { id: user.id_usuario, correo: user.correo, nombre: user.nombre } });
+        res.json({
+            token,
+            usuario: {
+                id: user.id_usuario,
+                correo: user.correo,
+                nombre: user.nombre,
+                rol: user.rol
+            }
+        });
     } catch (error: unknown) {
         if (error instanceof Error) {
             return res.status(500).json({ error: "Correo ya en uso" });
@@ -23,27 +36,40 @@ export const register = async ( req : Request, res: Response) =>{
     }
 }
 
-export const login = async ( req : Request, res: Response ) =>{
+export const login = async (req: Request, res: Response) => {
     const { correo, contrasena } = req.body;
     const user = await prisma.usuario.findUnique({
-      where: { correo },
+        where: { correo },
     });
-    if(!user){
+    if (!user) {
         return res.status(401).json({ error: 'Usuario no existe' });
     }
     const valid = await comparePassword(contrasena, user.contrasena);
-    if(!valid){
+    if (!valid) {
         return res.status(401).json({ error: 'Contraseña inválida' });
     }
     const token = generateToken({ id: user.id_usuario, correo: user.correo });
-    res.json({ token, usuario: { id: user.id_usuario, correo: user.correo, nombre: user.nombre } });
- }
+    res.json({
+        token,
+        usuario: {
+            id: user.id_usuario,
+            correo: user.correo,
+            nombre: user.nombre,
+            rol: user.rol
+        }
+    });
+}
 
 
 export const getUsers = async (req: Request, res: Response) => {
     try {
         const users = await prisma.usuario.findMany({
-            select: { id_usuario: true, correo: true }
+            select: {
+                id_usuario: true,
+                correo: true,
+                nombre: true,
+                rol: true
+            }
         });
         res.json(users);
     } catch (error) {

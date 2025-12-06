@@ -1,0 +1,348 @@
+.review-request-panel {
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 12px;
+}
+
+.panel-header h4 {
+    margin: 0 0 6px 0;
+    color: #2d3748;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.btn-show-form,
+.btn-show-form-secondary {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-show-form {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-show-form-secondary {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    margin-top: 16px;
+}
+
+.btn-show-form:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-show-form-secondary:hover {
+    background: #f7fafc;
+    transform: translateY(-1px);
+}
+
+/* Formulario */
+.request-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #718096;
+    font-style: italic;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-cancel,
+.btn-submit {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.btn-cancel:hover {
+    background: #cbd5e0;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-submit:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Lista de solicitudes */
+.requests-list {
+    margin-top: 24px;
+}
+
+.requests-list h5 {
+    margin: 0 0 14px 0;
+    font-size: 15px;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+
+.request-item {
+    background: white;
+    border-left: 5px solid #cbd5e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s;
+}
+
+.request-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.request-item.pendiente {
+    border-left-color: #f6ad55;
+}
+
+.request-item.aceptada {
+    border-left-color: #48bb78;
+}
+
+.request-item.rechazada {
+    border-left-color: #f56565;
+}
+
+.request-item.completada {
+    border-left-color: #4299e1;
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.request-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.request-docente {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 15px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status-pending {
+    background: #FED7AA;
+    color: #9C4221;
+}
+
+.status-accepted {
+    background: #C6F6D5;
+    color: #276749;
+}
+
+.status-rejected {
+    background: #FED7D7;
+    color: #9B2C2C;
+}
+
+.status-completed {
+    background: #BEE3F8;
+    color: #2C5282;
+}
+
+.request-date {
+    font-size: 12px;
+    color: #a0aec0;
+}
+
+.request-message {
+    margin: 12px 0;
+    padding: 12px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e0;
+}
+
+.request-message p {
+    margin: 0;
+    color: #4a5568;
+    font-size: 14px;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.request-status-message {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.request-status-message.accepted {
+    background: #C6F6D5;
+    color: #276749;
+    border-left: 4px solid #48bb78;
+}
+
+.request-status-message.rejected {
+    background: #FED7D7;
+    color: #9B2C2C;
+    border-left: 4px solid #f56565;
+}
+
+.request-status-message.completed {
+    background: #BEE3F8;
+    color: #2C5282;
+    border-left: 4px solid #4299e1;
+}
+
+.request-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-cancel-request {
+    padding: 8px 16px;
+    background: #FED7D7;
+    color: #9B2C2C;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel-request:hover {
+    background: #FEB2B2;
+}
+
+/* Info box */
+.info-box {
+    margin-top: 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+    border-left: 4px solid #38B2AC;
+    border-radius: 8px;
+}
+
+.info-text {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #234E52;
+    line-height: 1.6;
+}
+
+.info-text strong {
+    color: #14534A;
+}
+
+.info-list {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    color: #285E61;
+}
+
+.info-list li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+}

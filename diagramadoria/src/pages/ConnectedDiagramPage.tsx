@@ -19,6 +19,7 @@ import { useDispatch } from 'react-redux';
 import { fetchSentInvitations, fetchReceivedInvitations } from '../store/invitationSlice';
 import socketService from '../services/socketService';
 import type { DiagramUpdate } from '../services/socketService';
+import ReviewRequestPanel from '../components/ReviewRequestPanel';
 // import type { RootState } from '../store/store';
 
 type ClassType = {
@@ -115,6 +116,7 @@ const ConnectedDiagramPage: React.FC = () => {
         return pid ? getActivities(pid) : [];
     });
     const [showImportImageModal, setShowImportImageModal] = useState(false);
+    const [openReviewPanel, setOpenReviewPanel] = useState(false);
 
     // Handlers para el modal de importar imagen
     const handleUploadImage = (file: File) => {
@@ -4026,6 +4028,70 @@ const ConnectedDiagramPage: React.FC = () => {
                     </div>
                 )}
             </section>
+
+            {/* Botón flotante para Solicitar Revisión - Solo para estudiantes */}
+            {projectId && (
+                <>
+                    <div style={{
+                        position: 'fixed',
+                        bottom: 20,
+                        left: 20,
+                        zIndex: 10
+                    }}>
+                        <button
+                            onClick={() => setOpenReviewPanel(!openReviewPanel)}
+                            title={openReviewPanel ? 'Ocultar panel de revisiones' : 'Solicitar revisión de docente'}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '12px 16px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 50,
+                                fontSize: 16,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                                transition: 'all 0.3s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                            }}
+                        >
+                            🎓 Solicitar Revisión
+                        </button>
+                    </div>
+
+                    {openReviewPanel && (
+                        <div style={{
+                            position: 'fixed',
+                            bottom: 80,
+                            left: 20,
+                            width: 400,
+                            maxHeight: '70vh',
+                            overflow: 'auto',
+                            zIndex: 10,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                            borderRadius: 12,
+                            background: 'white'
+                        }}>
+                            <ReviewRequestPanel
+                                projectId={Number(projectId)}
+                                onRequestSent={() => {
+                                    console.log('Solicitud de revisión enviada');
+                                }}
+                            />
+                        </div>
+                    )}
+                </>
+            )}
 
             {/* Actividades Panel */}
             <div className='activity-toggle-container'>

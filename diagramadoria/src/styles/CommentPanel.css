@@ -1,0 +1,246 @@
+.comment-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.comment-panel-header {
+  padding: 16px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.comment-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-count {
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+}
+
+/* Formulario */
+.comment-form {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+}
+
+.comment-type-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.comment-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.comment-textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.btn-submit-comment {
+  width: 100%;
+  padding: 10px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-submit-comment:hover {
+  background: #45a049;
+}
+
+.btn-submit-comment:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Lista de comentarios */
+.comments-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.no-comments {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-style: italic;
+}
+
+/* Item de comentario */
+.comment-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #4CAF50;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.comment-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.comment-item.correccion {
+  border-left-color: #FF9800;
+  background: #FFF8E1;
+}
+
+.comment-item.sugerencia {
+  border-left-color: #2196F3;
+  background: #E3F2FD;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.comment-icon {
+  font-size: 16px;
+}
+
+.author-role {
+  font-size: 12px;
+  color: #666;
+  font-weight: normal;
+}
+
+.comment-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.comment-content {
+  margin: 12px 0;
+}
+
+.comment-content p {
+  margin: 0;
+  color: #333;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Badges de estado */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: #FFF3E0;
+  color: #F57C00;
+}
+
+.status-resolved {
+  background: #E8F5E9;
+  color: #388E3C;
+}
+
+.status-discarded {
+  background: #FFEBEE;
+  color: #D32F2F;
+}
+
+/* Acciones */
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-resolve {
+  background: #E8F5E9;
+  color: #388E3C;
+}
+
+.btn-resolve:hover {
+  background: #C8E6C9;
+}
+
+.btn-discard {
+  background: #FFEBEE;
+  color: #D32F2F;
+}
+
+.btn-discard:hover {
+  background: #FFCDD2;
+}
+
+.btn-delete {
+  background: #F5F5F5;
+  color: #666;
+}
+
+.btn-delete:hover {
+  background: #E0E0E0;
+}

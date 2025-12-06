@@ -9,12 +9,14 @@ export interface RegisterData {
   nombre: string;
   correo: string;
   contrasena: string;
+  rol?: 'estudiante' | 'docente';
 }
 
 export interface User {
   id: number;
   nombre: string;
   correo: string;
+  rol?: 'estudiante' | 'docente';
   created_at?: string;
 }
 
@@ -63,7 +65,8 @@ export const authApi = {
     const response = await axiosInstance.post('/users/register', {
       nombre: userData.nombre,
       correo: userData.correo,
-      contrasena: userData.contrasena
+      contrasena: userData.contrasena,
+      rol: userData.rol || 'estudiante'
     });
     return response.data;
   },

@@ -3,6 +3,9 @@ import cors from "cors";
 import userRoutes from './routes/user.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import invitationRoutes from './routes/invitation.routes.js';
+import commentRoutes from './routes/comment.routes.js';
+import gradeRoutes from './routes/grade.routes.js';
+import reviewRoutes from './routes/review.routes.js';
 
 const app = express();
 app.use(express.json());
@@ -23,6 +26,9 @@ app.use(cors({
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/grades', gradeRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Health check endpoint for Render
 app.get('/health', (_req, res) => {

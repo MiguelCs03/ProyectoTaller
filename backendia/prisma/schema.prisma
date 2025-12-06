@@ -18,10 +18,15 @@ model Usuario {
   nombre       String?
   correo       String   @unique
   contrasena   String
+  rol          String   @default("estudiante") // estudiante o docente
 
   Detalle_Proyecto          Detalle_Proyecto[]
   InvitacionesEnviadas      Invitacion[] @relation("InvitacionRemitente")
   InvitacionesRecibidas     Invitacion[] @relation("InvitacionDestinatario")
+  Comentarios               Comentario[]
+  CalificacionesRealizadas  Calificacion[] // Calificaciones que este usuario (docente) ha dado
+  SolicitudesRevisionEnviadas   SolicitudRevision[] @relation("SolicitudesEnviadas") // Como estudiante
+  SolicitudesRevisionRecibidas  SolicitudRevision[] @relation("SolicitudesRecibidas") // Como docente
 }
 
 model Proyecto {
@@ -33,6 +38,9 @@ model Proyecto {
 
   Detalle_Proyecto Detalle_Proyecto[]
   Invitaciones     Invitacion[]
+  Comentarios      Comentario[]
+  Calificaciones   Calificacion[]
+  SolicitudesRevision SolicitudRevision[]
 }
 
 model Permisos {
@@ -83,4 +91,58 @@ model Invitacion {
 
   @@unique([id_proyecto, id_destinatario]) // Un usuario no puede tener múltiples invitaciones al mismo proyecto
   @@map("invitaciones")
+}
+
+model Comentario {
+  id_comentario    Int       @id @default(autoincrement())
+  id_proyecto      Int
+  id_usuario       Int       // Usuario que hace el comentario (generalmente docente)
+  elemento_id      String?   // ID del elemento del diagrama al que se refiere (clase, relación, etc)
+  elemento_tipo    String?   // Tipo: "clase", "relacion", "general"
+  contenido        String    // Texto del comentario/corrección
+  tipo             String    @default("comentario") // comentario, correccion, sugerencia
+  estado           String    @default("pendiente") // pendiente, resuelto, descartado
+  fecha_creacion   DateTime  @default(now())
+  fecha_resolucion DateTime?
+
+  Proyecto         Proyecto  @relation(fields: [id_proyecto], references: [id_proyecto], onDelete: Cascade)
+  Usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@map("comentarios")
+}
+
+model Calificacion {
+  id_calificacion  Int       @id @default(autoincrement())
+  id_proyecto      Int
+  id_docente       Int       // Docente que califica
+  nota             Decimal   @db.Decimal(5, 2) // Ejemplo: 95.50
+  nota_maxima      Decimal   @default(100) @db.Decimal(5, 2) // Nota máxima (por defecto 100)
+  comentario       String?   // Comentario general del docente sobre la calificación
+  fecha_calificacion DateTime  @default(now())
+  fecha_actualizacion DateTime? @updatedAt
+
+  Proyecto         Proyecto  @relation(fields: [id_proyecto], references: [id_proyecto], onDelete: Cascade)
+  Docente          Usuario   @relation(fields: [id_docente], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_proyecto, id_docente]) // Un docente solo puede calificar una vez cada proyecto
+  @@map("calificaciones")
+}
+
+model SolicitudRevision {
+  id_solicitud         Int       @id @default(autoincrement())
+  id_proyecto          Int
+  id_estudiante        Int       // Estudiante que solicita
+  id_docente           Int       // Docente al que se solicita
+  mensaje              String?   // Mensaje del estudiante al docente
+  estado               String    @default("pendiente") // pendiente, aceptada, rechazada, completada
+  fecha_solicitud      DateTime  @default(now())
+  fecha_respuesta      DateTime?
+  fecha_completada     DateTime? // Cuando el docente termine la revisión
+
+  Proyecto             Proyecto  @relation(fields: [id_proyecto], references: [id_proyecto], onDelete: Cascade)
+  Estudiante           Usuario   @relation("SolicitudesEnviadas", fields: [id_estudiante], references: [id_usuario], onDelete: Cascade)
+  Docente              Usuario   @relation("SolicitudesRecibidas", fields: [id_docente], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_proyecto, id_docente]) // Un docente solo puede tener una solicitud activa por proyecto
+  @@map("solicitudes_revision")
 }

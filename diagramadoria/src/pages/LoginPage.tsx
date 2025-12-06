@@ -19,19 +19,20 @@ const LoginPage = () => {
         try {
             const formData = new FormData(e.target as HTMLFormElement);
             const nombre = formData.get('name') as string;
-            const correo  = formData.get('username') as string;
+            const correo = formData.get('username') as string;
             const confirm = formData.get('confirm') as string;
             const contrasena = formData.get('password') as string;
+            const rol = formData.get('rol') as 'estudiante' | 'docente' || 'estudiante';
             if (isRegister) {
                 if (contrasena !== confirm) {
                     alert("Las contraseñas no coinciden");
                     return;
                 }
-                await dispatch(register({ correo, contrasena, nombre}));
+                await dispatch(register({ correo, contrasena, nombre, rol }));
             } else {
                 console.log("Intentando iniciar sesión con:", { correo, contrasena });
                 await dispatch(login({ correo, contrasena }));
-            }    
+            }
         } catch (error) {
             console.error("Error en el proceso de autenticación:", error);
         }
@@ -66,10 +67,19 @@ const LoginPage = () => {
                 </div>
 
                 {isRegister && (
-                    <div className='field'>
-                        <label htmlFor='name'>Nombre completo:</label>
-                        <input id='name' name='name' type='text' placeholder='Tu nombre completo' />
-                    </div>
+                    <>
+                        <div className='field'>
+                            <label htmlFor='name'>Nombre completo:</label>
+                            <input id='name' name='name' type='text' placeholder='Tu nombre completo' />
+                        </div>
+                        <div className='field'>
+                            <label htmlFor='rol'>Tipo de cuenta:</label>
+                            <select id='rol' name='rol' defaultValue='estudiante'>
+                                <option value='estudiante'>Estudiante</option>
+                                <option value='docente'>Docente</option>
+                            </select>
+                        </div>
+                    </>
                 )}
 
                 <div className='field'>
