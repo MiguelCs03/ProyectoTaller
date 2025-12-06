@@ -32,22 +32,16 @@ class SocketService {
 
   connect(token?: string, url?: string) {
     if (this.socket?.connected) return;
-    
-  // Prefer explicit URL param, then env vars, and finally production backend as fallback
-  const envUrl = (import.meta.env as any).VITE_BACKEND_URL || (import.meta.env as any).VITE_API_BASE_URL;
-  // Ensure we connect to the ORIGIN (strip trailing /api if provided)
-  const normalizedEnv = typeof envUrl === 'string' ? envUrl.replace(/\/?api\/?$/i, '') : undefined;
 
-  // Nota para desarrollo local:
-  // - Puedes crear un archivo .env en diagramadoria con: VITE_BACKEND_URL=http://localhost:3000
-  // - O puedes forzar la URL local al llamar: socketService.connect(token, 'http://localhost:3000')
-  // - Si prefieres, descomenta la siguiente línea para usar localhost como fallback en dev:
-  //  const endpoint = url || normalizedEnv || 'http://localhost:3000';
+    // Prefer explicit URL param, then env vars, and finally localhost as fallback
+    const envUrl = (import.meta.env as any).VITE_SOCKET_URL || (import.meta.env as any).VITE_API_URL;
+    // Ensure we connect to the ORIGIN (strip trailing /api if provided)
+    const normalizedEnv = typeof envUrl === 'string' ? envUrl.replace(/\/?api\/?$/i, '') : undefined;
 
-  const endpoint = url || normalizedEnv || 'https://diagamaia.onrender.com';
+    const endpoint = url || normalizedEnv || 'http://localhost:3000';
     console.log('Conectando a Socket.IO en:', endpoint);
-    
-    this.socket = io(endpoint, { 
+
+    this.socket = io(endpoint, {
       auth: { token },
       transports: ['websocket', 'polling'],
       forceNew: true,
@@ -60,7 +54,7 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('Socket conectado:', this.socket?.id);
       this.reconnectAttempts = 0;
-      
+
       // Rejoin project if we were in one
       if (this.currentProjectId) {
         console.log('Rejoining project:', this.currentProjectId);
@@ -97,10 +91,10 @@ class SocketService {
 
   disconnect() {
     if (!this.socket) return;
-    try { 
+    try {
       console.log('Desconectando socket...');
-      this.socket.disconnect(); 
-    } catch {}
+      this.socket.disconnect();
+    } catch { }
     this.socket = null;
     this.currentProjectId = null;
     this.reconnectAttempts = 0;
@@ -152,16 +146,16 @@ class SocketService {
     else this.socket.off(event);
   }
 
-  isConnected() { 
-    return !!this.socket && this.socket.connected; 
+  isConnected() {
+    return !!this.socket && this.socket.connected;
   }
-  
-  getSocketId() { 
-    return this.socket?.id; 
+
+  getSocketId() {
+    return this.socket?.id;
   }
-  
-  getCurrentProjectId() { 
-    return this.currentProjectId; 
+
+  getCurrentProjectId() {
+    return this.currentProjectId;
   }
 
   // Método para verificar si estamos en el proyecto correcto

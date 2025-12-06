@@ -7,10 +7,11 @@ import invitationRoutes from './routes/invitation.routes.js';
 const app = express();
 app.use(express.json());
 
-// Allow configuring CORS via env in productionaaa
-//  const defaultOrigins = ['http://localhost:5173'];
-// const defaultOrigins = ['https://calm-smoke-04a369c10.2.azurestaticapps.net'];
-const defaultOrigins = ['https://diagramadoria.netlify.app'];
+// Allow configuring CORS via env variable
+const defaultOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://diagramadoria.netlify.app']
+    : ['http://localhost:5173', 'http://localhost:3000'];
+
 const envOrigins = process.env.CORS_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
     origin: envOrigins && envOrigins.length > 0 ? envOrigins : defaultOrigins,
