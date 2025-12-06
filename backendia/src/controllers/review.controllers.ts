@@ -7,7 +7,11 @@ const prisma = new PrismaClient();
 export const createReviewRequest = async (req: Request, res: Response) => {
     try {
         const { id_proyecto, correo_docente, mensaje } = req.body;
-        const estudianteId = (req as any).userId;
+        const estudianteId = (req as any).user?.id;
+
+        if (!estudianteId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
 
         // Verificar que el usuario es estudiante
         const estudiante = await prisma.usuario.findUnique({
@@ -98,7 +102,7 @@ export const createReviewRequest = async (req: Request, res: Response) => {
             message: (error as Error).message,
             stack: (error as Error).stack,
             body: req.body,
-            userId: (req as any).userId
+            userId: (req as any).user?.id
         });
         res.status(500).json({
             error: 'Error al crear solicitud de revisión',
@@ -110,7 +114,7 @@ export const createReviewRequest = async (req: Request, res: Response) => {
 // Obtener solicitudes enviadas (estudiante)
 export const getMyReviewRequests = async (req: Request, res: Response) => {
     try {
-        const estudianteId = (req as any).userId;
+        const estudianteId = (req as any).user?.id;
 
         const solicitudes = await prisma.solicitudRevision.findMany({
             where: {
@@ -146,7 +150,7 @@ export const getMyReviewRequests = async (req: Request, res: Response) => {
 // Obtener solicitudes recibidas (docente)
 export const getReceivedReviewRequests = async (req: Request, res: Response) => {
     try {
-        const docenteId = (req as any).userId;
+        const docenteId = (req as any).user?.id;
 
         const solicitudes = await prisma.solicitudRevision.findMany({
             where: {
@@ -182,10 +186,29 @@ export const getReceivedReviewRequests = async (req: Request, res: Response) => 
 
 // Responder a solicitud (docente acepta/rechaza)
 export const respondToReviewRequest = async (req: Request, res: Response) => {
+    console.log('🚀 =================================');
+    console.log('🚀 ENDPOINT respondToReviewRequest LLAMADO');
+    console.log('🚀 Headers:', req.headers.authorization);
+    console.log('🚀 Params:', req.params);
+    console.log('🚀 Body:', req.body);
+    console.log('🚀 User desde middleware:', (req as any).user);
+    console.log('🚀 =================================');
+    
     try {
         const { requestId } = req.params;
         const { respuesta } = req.body; // 'aceptada' o 'rechazada'
-        const docenteId = (req as any).userId;
+        const docenteId = (req as any).user?.id;
+
+        console.log(`📋 Respondiendo a solicitud ${requestId}, respuesta: ${respuesta}, docenteId: ${docenteId}`);
+
+        if (!docenteId) {
+            console.log('❌ NO HAY DOCENTE ID - Usuario no autenticado');
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+        if (!requestId) {
+            console.log('❌ NO HAY REQUEST ID');
+            return res.status(400).json({ error: 'Falta el parámetro requestId' });
+        }
 
         const solicitud = await prisma.solicitudRevision.findUnique({
             where: { id_solicitud: parseInt(requestId) }
@@ -194,6 +217,8 @@ export const respondToReviewRequest = async (req: Request, res: Response) => {
         if (!solicitud) {
             return res.status(404).json({ error: 'Solicitud no encontrada' });
         }
+
+        console.log(`📋 Solicitud encontrada: proyecto ${solicitud.id_proyecto}, docente esperado: ${solicitud.id_docente}`);
 
         if (solicitud.id_docente !== docenteId) {
             return res.status(403).json({ error: 'No tienes permiso para responder esta solicitud' });
@@ -221,16 +246,31 @@ export const respondToReviewRequest = async (req: Request, res: Response) => {
             }
         });
 
-        // Si acepta, dar acceso temporal de vista al proyecto (opcional)
+        // Si acepta, dar acceso de vista al proyecto para que pueda revisar y comentar
         if (respuesta === 'aceptada') {
-            // Buscar permiso de "vista"
-            const permisoVista = await prisma.permisos.findFirst({
+            console.log(`🔍 Buscando permiso de vista para docente ${docenteId} en proyecto ${solicitud.id_proyecto}`);
+            // Buscar o crear permiso de "vista"
+            let permisoVista = await prisma.permisos.findFirst({
                 where: {
-                    descripcion: { contains: 'vista', mode: 'insensitive' }
+                    descripcion: 'vista'
                 }
             });
 
+            // Si no existe, intentar buscar con otros nombres comunes
+            if (!permisoVista) {
+                permisoVista = await prisma.permisos.findFirst({
+                    where: {
+                        OR: [
+                            { descripcion: { contains: 'vista', mode: 'insensitive' } },
+                            { descripcion: { contains: 'view', mode: 'insensitive' } },
+                            { descripcion: { contains: 'solo lectura', mode: 'insensitive' } }
+                        ]
+                    }
+                });
+            }
+
             if (permisoVista) {
+                console.log(`✅ Permiso encontrado: ${permisoVista.descripcion} (ID: ${permisoVista.id_permiso})`);
                 // Verificar si ya tiene acceso
                 const accesoExistente = await prisma.detalle_Proyecto.findFirst({
                     where: {
@@ -240,14 +280,35 @@ export const respondToReviewRequest = async (req: Request, res: Response) => {
                 });
 
                 if (!accesoExistente) {
-                    await prisma.detalle_Proyecto.create({
+                    // Crear acceso al proyecto
+                    console.log(`🔧 Creando acceso: usuario=${docenteId}, proyecto=${solicitud.id_proyecto}, permiso=${permisoVista.id_permiso}`);
+                    const nuevoAcceso = await prisma.detalle_Proyecto.create({
                         data: {
                             id_usuario: docenteId,
                             id_proyecto: solicitud.id_proyecto,
                             id_permiso: permisoVista.id_permiso
                         }
                     });
+                    console.log(`✅ Acceso creado exitosamente:`, nuevoAcceso);
+                    console.log(`✅ Acceso otorgado al docente ${docenteId} en el proyecto ${solicitud.id_proyecto}`);
+                    
+                    // Verificar que se creó correctamente
+                    const verificacion = await prisma.detalle_Proyecto.findFirst({
+                        where: {
+                            id_usuario: docenteId,
+                            id_proyecto: solicitud.id_proyecto
+                        },
+                        include: { Permisos: true }
+                    });
+                    console.log(`🔍 Verificación post-creación:`, verificacion ? `OK - Permiso: ${verificacion.Permisos.descripcion}` : 'ERROR - No se encontró el acceso recién creado');
+                } else {
+                    console.log(`ℹ️ El docente ${docenteId} ya tiene acceso al proyecto ${solicitud.id_proyecto}`, accesoExistente);
                 }
+            } else {
+                // Listar todos los permisos disponibles para debugging
+                const todosPermisos = await prisma.permisos.findMany();
+                console.error('⚠️ No se encontró permiso de vista en la base de datos');
+                console.error('Permisos disponibles:', todosPermisos);
             }
         }
 
@@ -262,7 +323,11 @@ export const respondToReviewRequest = async (req: Request, res: Response) => {
 export const completeReview = async (req: Request, res: Response) => {
     try {
         const { requestId } = req.params;
-        const docenteId = (req as any).userId;
+        const docenteId = (req as any).user?.id;
+
+        if (!requestId) {
+            return res.status(400).json({ error: 'Falta el parámetro requestId' });
+        }
 
         const solicitud = await prisma.solicitudRevision.findUnique({
             where: { id_solicitud: parseInt(requestId) }
@@ -299,7 +364,11 @@ export const completeReview = async (req: Request, res: Response) => {
 export const cancelReviewRequest = async (req: Request, res: Response) => {
     try {
         const { requestId } = req.params;
-        const estudianteId = (req as any).userId;
+        const estudianteId = (req as any).user?.id;
+
+        if (!requestId) {
+            return res.status(400).json({ error: 'Falta el parámetro requestId' });
+        }
 
         const solicitud = await prisma.solicitudRevision.findUnique({
             where: { id_solicitud: parseInt(requestId) }

@@ -15,12 +15,14 @@ import { suggestAttributesForClasses, type AttributeSuggestion, suggestClassesFr
 import { addActivity, setActiveProjectId, getActiveProjectId, getActivities } from '../utils/collaboration'
 import { projectApi } from '../api/projectApi';
 import { invitationApi } from '../api/invitationApi';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchSentInvitations, fetchReceivedInvitations } from '../store/invitationSlice';
 import socketService from '../services/socketService';
 import type { DiagramUpdate } from '../services/socketService';
 import ReviewRequestPanel from '../components/ReviewRequestPanel';
-// import type { RootState } from '../store/store';
+import CommentPanel from '../components/CommentPanel';
+import GradePanel from '../components/GradePanel';
+import type { RootState } from '../store/store';
 
 type ClassType = {
     id: number;
@@ -80,6 +82,7 @@ const ConnectedDiagramPage: React.FC = () => {
     const navigate = useNavigate();
     const { projectId } = useParams<{ projectId: string }>();
     const dispatch = useDispatch();
+    const user = useSelector((state: RootState) => state.auth.user);
     const diagramaRef = useRef<HTMLDivElement>(null);
     const [graph, setGraph] = useState<joint.dia.Graph | null>(null);
     const [paper, setPaper] = useState<joint.dia.Paper | null>(null);
@@ -117,6 +120,8 @@ const ConnectedDiagramPage: React.FC = () => {
     });
     const [showImportImageModal, setShowImportImageModal] = useState(false);
     const [openReviewPanel, setOpenReviewPanel] = useState(false);
+    const [openCommentsPanel, setOpenCommentsPanel] = useState(false);
+    const [openGradePanel, setOpenGradePanel] = useState(false);
 
     // Handlers para el modal de importar imagen
     const handleUploadImage = (file: File) => {
@@ -3375,6 +3380,25 @@ const ConnectedDiagramPage: React.FC = () => {
                             }}
                         >🐦 Generar Frontend Flutter</button>
                     </div>
+
+                    {/* Sección de Revisión (solo para estudiantes creadores) */}
+                    {user?.rol === 'estudiante' && myRole === 'creador' && (
+                        <div className="sidebar-section">
+                            <div className="sidebar-title">Revisión</div>
+                            <button
+                                onClick={() => setOpenReviewPanel(true)}
+                                className="btn btn-block"
+                                title="Solicitar revisión de un docente"
+                                style={{
+                                    backgroundColor: '#7c3aed',
+                                    color: 'white',
+                                    border: '1px solid #7c3aed'
+                                }}
+                            >
+                                🎓 Solicitar Revisión
+                            </button>
+                        </div>
+                    )}
                 </aside>
             )}
 
@@ -4029,68 +4053,53 @@ const ConnectedDiagramPage: React.FC = () => {
                 )}
             </section>
 
-            {/* Botón flotante para Solicitar Revisión - Solo para estudiantes */}
-            {projectId && (
-                <>
+            {/* Panel de Solicitud de Revisión - Solo para estudiantes */}
+            {projectId && openReviewPanel && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: 20,
+                    left: 20,
+                    width: 400,
+                    maxHeight: '80vh',
+                    overflow: 'auto',
+                    zIndex: 10,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    borderRadius: 12,
+                    background: 'white'
+                }}>
                     <div style={{
-                        position: 'fixed',
-                        bottom: 20,
-                        left: 20,
-                        zIndex: 10
+                        position: 'sticky',
+                        top: 0,
+                        background: 'white',
+                        padding: '12px',
+                        borderBottom: '1px solid #e0e0e0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderRadius: '12px 12px 0 0'
                     }}>
+                        <h4 style={{ margin: 0 }}>🎓 Solicitudes de Revisión</h4>
                         <button
-                            onClick={() => setOpenReviewPanel(!openReviewPanel)}
-                            title={openReviewPanel ? 'Ocultar panel de revisiones' : 'Solicitar revisión de docente'}
+                            onClick={() => setOpenReviewPanel(false)}
                             style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '12px 16px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: 'white',
+                                background: 'none',
                                 border: 'none',
-                                borderRadius: 50,
-                                fontSize: 16,
-                                fontWeight: 700,
+                                fontSize: '24px',
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                                transition: 'all 0.3s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                                color: '#666',
+                                padding: '4px 8px'
                             }}
                         >
-                            🎓 Solicitar Revisión
+                            ×
                         </button>
                     </div>
-
-                    {openReviewPanel && (
-                        <div style={{
-                            position: 'fixed',
-                            bottom: 80,
-                            left: 20,
-                            width: 400,
-                            maxHeight: '70vh',
-                            overflow: 'auto',
-                            zIndex: 10,
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                            borderRadius: 12,
-                            background: 'white'
-                        }}>
-                            <ReviewRequestPanel
-                                projectId={Number(projectId)}
-                                onRequestSent={() => {
-                                    console.log('Solicitud de revisión enviada');
-                                }}
-                            />
-                        </div>
-                    )}
-                </>
+                    <ReviewRequestPanel
+                        projectId={Number(projectId)}
+                        onRequestSent={() => {
+                            console.log('Solicitud de revisión enviada');
+                        }}
+                    />
+                </div>
             )}
 
             {/* Actividades Panel */}
@@ -4125,6 +4134,183 @@ const ConnectedDiagramPage: React.FC = () => {
                 onUpload={handleUploadImage}
                 onAnalyzeWithAI={handleAnalyzeImageWithAI}
             />
+
+            {/* Panel de Comentarios para Docentes */}
+            {user?.rol === 'docente' && openCommentsPanel && projectId && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '80px',
+                        right: '20px',
+                        width: '400px',
+                        maxWidth: '90vw',
+                        maxHeight: '80vh',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '10px',
+                        boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px',
+                            borderBottom: '1px solid #e5e7eb',
+                            background: '#f9fafb'
+                        }}
+                    >
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>💬 Comentarios</h3>
+                        <button
+                            onClick={() => setOpenCommentsPanel(false)}
+                            style={{
+                                background: '#f3f4f6',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                    <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+                        <CommentPanel projectId={parseInt(projectId)} />
+                    </div>
+                </div>
+            )}
+
+            {/* Panel de Calificaciones para Docentes */}
+            {user?.rol === 'docente' && openGradePanel && projectId && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '80px',
+                        right: openCommentsPanel ? '440px' : '20px',
+                        width: '400px',
+                        maxWidth: '90vw',
+                        maxHeight: '80vh',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '10px',
+                        boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px',
+                            borderBottom: '1px solid #e5e7eb',
+                            background: '#f9fafb'
+                        }}
+                    >
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>📊 Calificación</h3>
+                        <button
+                            onClick={() => setOpenGradePanel(false)}
+                            style={{
+                                background: '#f3f4f6',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                    <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+                        <GradePanel projectId={parseInt(projectId)} />
+                    </div>
+                </div>
+            )}
+
+            {/* Botones flotantes para Docentes */}
+            {user?.rol === 'docente' && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '50%',
+                        right: '30px',
+                        transform: 'translateY(-50%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '20px',
+                        zIndex: 9999
+                    }}
+                >
+                    <button
+                        onClick={() => setOpenCommentsPanel(!openCommentsPanel)}
+                        style={{
+                            width: '70px',
+                            height: '70px',
+                            borderRadius: '50%',
+                            background: openCommentsPanel ? '#4a90e2' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            border: '3px solid white',
+                            fontSize: '32px',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.15)';
+                            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.45)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
+                        }}
+                        title="Comentarios"
+                    >
+                        💬
+                    </button>
+                    <button
+                        onClick={() => setOpenGradePanel(!openGradePanel)}
+                        style={{
+                            width: '70px',
+                            height: '70px',
+                            borderRadius: '50%',
+                            background: openGradePanel ? '#4a90e2' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                            color: 'white',
+                            border: '3px solid white',
+                            fontSize: '32px',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.15)';
+                            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.45)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
+                        }}
+                        title="Calificar"
+                    >
+                        📊
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

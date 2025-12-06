@@ -170,6 +170,7 @@ export const getProject = async (req: Request, res: Response) => {
         }
 
         // Verificar que el usuario tenga acceso al proyecto
+        console.log(`🔍 Verificando acceso: userId=${userId}, projectId=${id}`);
         const acceso = await prisma.detalle_Proyecto.findFirst({
             where: {
                 id_usuario: userId,
@@ -181,9 +182,20 @@ export const getProject = async (req: Request, res: Response) => {
             }
         });
 
+        console.log(`📊 Resultado de búsqueda de acceso:`, acceso ? `Acceso encontrado - Permiso: ${acceso.Permisos.descripcion}` : 'NO SE ENCONTRÓ ACCESO');
+
         if (!acceso) {
+            // Listar todos los accesos del proyecto para debug
+            const todosLosAccesos = await prisma.detalle_Proyecto.findMany({
+                where: { id_proyecto: parseInt(id) },
+                include: { Usuario: true, Permisos: true }
+            });
+            console.log(`❌ Usuario ${userId} NO tiene acceso al proyecto ${id}`);
+            console.log(`📋 Accesos existentes en el proyecto ${id}:`, todosLosAccesos.map(a => `Usuario ${a.id_usuario} (${a.Usuario.nombre}) - Permiso: ${a.Permisos.descripcion}`));
             return res.status(403).json({ error: 'No tienes acceso a este proyecto' });
         }
+        
+        console.log(`✅ Usuario ${userId} tiene acceso al proyecto ${id} con permiso: ${acceso.Permisos.descripcion}`);
 
         // Obtener colaboradores del proyecto
         const colaboradores = await prisma.detalle_Proyecto.findMany({

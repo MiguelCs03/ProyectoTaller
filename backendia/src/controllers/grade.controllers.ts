@@ -6,8 +6,21 @@ const prisma = new PrismaClient();
 // Crear o actualizar calificación 
 export const upsertGrade = async (req: Request, res: Response) => {
     try {
-        const { id_proyecto, nota, nota_maxima, comentario } = req.body;
-        const docenteId = (req as any).userId;
+        const { id_proyecto, nota, calificacion, nota_maxima, comentario } = req.body;
+        const docenteId = (req as any).user?.id;
+
+        console.log('📊 Calificando proyecto:', { id_proyecto, nota, calificacion, docenteId, body: req.body });
+
+        if (!docenteId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+
+        // Aceptar tanto 'nota' como 'calificacion' (compatibilidad)
+        const notaFinal = nota || calificacion;
+
+        if (notaFinal === undefined || notaFinal === null) {
+            return res.status(400).json({ error: 'Falta la calificación' });
+        }
 
         // Verificar que el usuario es docente
         const docente = await prisma.usuario.findUnique({
@@ -31,7 +44,7 @@ export const upsertGrade = async (req: Request, res: Response) => {
         }
 
         // Crear o actualizar calificación
-        const calificacion = await prisma.calificacion.upsert({
+        const calificacionResult = await prisma.calificacion.upsert({
             where: {
                 id_proyecto_id_docente: {
                     id_proyecto: parseInt(id_proyecto),
@@ -39,7 +52,7 @@ export const upsertGrade = async (req: Request, res: Response) => {
                 }
             },
             update: {
-                nota,
+                nota: notaFinal,
                 nota_maxima: nota_maxima || 100,
                 comentario,
                 fecha_actualizacion: new Date()
@@ -47,7 +60,7 @@ export const upsertGrade = async (req: Request, res: Response) => {
             create: {
                 id_proyecto: parseInt(id_proyecto),
                 id_docente: docenteId,
-                nota,
+                nota: notaFinal,
                 nota_maxima: nota_maxima || 100,
                 comentario
             },
@@ -63,7 +76,7 @@ export const upsertGrade = async (req: Request, res: Response) => {
             }
         });
 
-        res.json(calificacion);
+        res.json(calificacionResult);
     } catch (error) {
         console.error('Error al calificar proyecto:', error);
         res.status(500).json({ error: 'Error al calificar proyecto' });
@@ -74,7 +87,11 @@ export const upsertGrade = async (req: Request, res: Response) => {
 export const getProjectGrades = async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
 
         // Verificar acceso al proyecto
         const acceso = await prisma.detalle_Proyecto.findFirst({
@@ -132,7 +149,11 @@ export const getProjectGrades = async (req: Request, res: Response) => {
 export const deleteGrade = async (req: Request, res: Response) => {
     try {
         const { gradeId } = req.params;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
 
         const calificacion = await prisma.calificacion.findUnique({
             where: { id_calificacion: parseInt(gradeId) }
@@ -161,7 +182,11 @@ export const deleteGrade = async (req: Request, res: Response) => {
 // Obtener proyectos del docente para revisar (dashboard del docente)
 export const getDocenteProjects = async (req: Request, res: Response) => {
     try {
-        const docenteId = (req as any).userId;
+        const docenteId = (req as any).user?.id;
+
+        if (!docenteId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
 
         // Verificar que es docente
         const usuario = await prisma.usuario.findUnique({

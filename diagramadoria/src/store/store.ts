@@ -18,5 +18,7 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 // Hook para usar dispatch tipado en componentes
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector as useReduxSelector } from 'react-redux';
 export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useSelector = <TSelected>(selector: (state: RootState) => TSelected): TSelected => 
+  useReduxSelector(selector);

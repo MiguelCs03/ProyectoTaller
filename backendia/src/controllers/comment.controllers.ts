@@ -7,7 +7,11 @@ const prisma = new PrismaClient();
 export const createComment = async (req: Request, res: Response) => {
     try {
         const { id_proyecto, elemento_id, elemento_tipo, contenido, tipo } = req.body;
-        const userId = (req as any).userId; // Del middleware de autenticación
+        const userId = (req as any).user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
 
         // Verificar que el usuario tiene acceso al proyecto
         const acceso = await prisma.detalle_Proyecto.findFirst({
@@ -54,7 +58,14 @@ export const createComment = async (req: Request, res: Response) => {
 export const getProjectComments = async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+        if (!projectId) {
+            return res.status(400).json({ error: 'Falta el parámetro projectId' });
+        }
 
         // Verificar acceso al proyecto
         const acceso = await prisma.detalle_Proyecto.findFirst({
@@ -98,7 +109,14 @@ export const getProjectComments = async (req: Request, res: Response) => {
 export const getElementComments = async (req: Request, res: Response) => {
     try {
         const { projectId, elementId } = req.params;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+        if (!projectId) {
+            return res.status(400).json({ error: 'Falta el parámetro projectId' });
+        }
 
         // Verificar acceso
         const acceso = await prisma.detalle_Proyecto.findFirst({
@@ -115,7 +133,7 @@ export const getElementComments = async (req: Request, res: Response) => {
         const comentarios = await prisma.comentario.findMany({
             where: {
                 id_proyecto: parseInt(projectId),
-                elemento_id: elementId
+                elemento_id: elementId ?? null
             },
             include: {
                 Usuario: {
@@ -144,8 +162,15 @@ export const updateCommentStatus = async (req: Request, res: Response) => {
     try {
         const { commentId } = req.params;
         const { estado } = req.body;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
 
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+
+        if (!commentId) {
+            return res.status(400).json({ error: 'Falta el parámetro commentId' });
+        }
         // Obtener el comentario
         const comentario = await prisma.comentario.findUnique({
             where: { id_comentario: parseInt(commentId) },
@@ -200,8 +225,15 @@ export const updateCommentStatus = async (req: Request, res: Response) => {
 export const deleteComment = async (req: Request, res: Response) => {
     try {
         const { commentId } = req.params;
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.id;
 
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+
+        if (!commentId) {
+            return res.status(400).json({ error: 'Falta el parámetro commentId' });
+        }
         const comentario = await prisma.comentario.findUnique({
             where: { id_comentario: parseInt(commentId) }
         });

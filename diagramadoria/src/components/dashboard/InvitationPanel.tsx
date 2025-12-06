@@ -42,6 +42,7 @@ import {
 } from '../../store/invitationSlice';
 import { fetchProjectById } from '../../store/projectSlice';
 import type { SendInvitationData, Invitation, Permission } from '../../api/invitationApi';
+import TeacherReviewPanel from './TeacherReviewPanel';
 
 interface SendInvitationDialogProps {
   open: boolean;
@@ -359,6 +360,7 @@ const InvitationPanel: React.FC = () => {
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
           <Tab label={`Recibidas (${receivedInvitations.length})`} />
           <Tab label={`Enviadas (${projectId ? projectInvitations.length : sentInvitations.length})`} />
+          {user?.rol === 'docente' && <Tab label="Solicitudes de Revisión" />}
         </Tabs>
       </Box>
 
@@ -405,6 +407,12 @@ const InvitationPanel: React.FC = () => {
           ))
         )}
       </TabPanel>
+
+      {user?.rol === 'docente' && (
+        <TabPanel value={tabValue} index={2}>
+          <TeacherReviewPanel />
+        </TabPanel>
+      )}
 
       {projectId && (
         <SendInvitationDialog
