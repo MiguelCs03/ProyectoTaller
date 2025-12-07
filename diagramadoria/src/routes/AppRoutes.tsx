@@ -7,6 +7,11 @@ import InvitationPanel from "../components/dashboard/InvitationPanel"
 import GenerationBackendSprintBoot from "../pages/GenerationBackendSprintBoot"
 import ChatBotPage from "../pages/ChatBotPage"
 import GenerationFrontendFlutter from "../pages/GenerationFrontendFlutter"
+import StudentDashboardPage from "../pages/StudentDashboardPage"
+import IndividualProgressPage from "../pages/IndividualProgressPage"
+import CollaborationReportPage from "../pages/CollaborationReportPage"
+import PendingProjectsReportPage from "../pages/PendingProjectsReportPage"
+import DiagramEvolutionPage from "../pages/DiagramEvolutionPage"
 
 const AppRoutes = () => {
     return (
@@ -20,7 +25,13 @@ const AppRoutes = () => {
             <Route path="/generate/:projectId" element={<GenerationBackendSprintBoot />} />
             <Route path="/generate-frontend/:projectId" element={<GenerationFrontendFlutter />} />
             <Route path="/chatbot" element={<ChatBotPage />} />
-            {/* Rutas antiguas eliminadas para evitar duplicidad */}
+
+            {/* Reportes */}
+            <Route path="/reports/student-dashboard" element={<StudentDashboardPage />} />
+            <Route path="/reports/individual-progress" element={<IndividualProgressPage />} />
+            <Route path="/reports/collaboration/:projectId" element={<CollaborationReportPage />} />
+            <Route path="/reports/pending-projects" element={<PendingProjectsReportPage />} />
+            <Route path="/reports/diagram-evolution/:projectId" element={<DiagramEvolutionPage />} />
         </Routes>
     )
 }

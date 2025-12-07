@@ -6,6 +6,7 @@ import invitationRoutes from './routes/invitation.routes.js';
 import commentRoutes from './routes/comment.routes.js';
 import gradeRoutes from './routes/grade.routes.js';
 import reviewRoutes from './routes/review.routes.js';
+import reportsRoutes from './routes/reports.routes.js';
 
 const app = express();
 app.use(express.json());
@@ -29,6 +30,8 @@ app.use('/api/invitations', invitationRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/reports', reportsRoutes);
+console.log('✅ RUTAS DE REPORTES REGISTRADAS EN /api/reports');
 
 // Health check endpoint for Render
 app.get('/health', (_req, res) => {
