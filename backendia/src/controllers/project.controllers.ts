@@ -131,23 +131,52 @@ export const getUserProjects = async (req: Request, res: Response) => {
             }
         });
 
-        const proyectosFormateados = proyectos.map((detalle: DetalleProyectoWithRels) => ({
-            id: detalle.Proyecto.id_proyecto,
-            name: detalle.Proyecto.titulo,
-            description: null, // Puedes agregar este campo en el futuro
-            diagrama_json: detalle.Proyecto.diagrama_json,
-            is_public: false, // Puedes agregar este campo en el futuro
-            created_at: detalle.Proyecto.fecha_inicio.toISOString(),
-            updated_at: detalle.Proyecto.fecha_inicio.toISOString(),
-            creator_id: detalle.Usuario.id_usuario,
-            estado: detalle.Proyecto.estado,
-            rol: detalle.Permisos.descripcion,
-            creator: {
+        // Obtener creadores reales de todos los proyectos listados
+        const projectIds = Array.from(new Set(proyectos.map(p => p.Proyecto.id_proyecto)));
+        const creadores = await prisma.detalle_Proyecto.findMany({
+            where: {
+                id_proyecto: { in: projectIds },
+                Permisos: { descripcion: 'creador' as any }
+            },
+            include: {
+                Usuario: { select: { id_usuario: true, nombre: true, correo: true } },
+                Permisos: true,
+                Proyecto: { select: { id_proyecto: true } }
+            }
+        });
+        const creadorPorProyecto = new Map<number, { id: number; name: string | null; email: string }>();
+        creadores.forEach(c => {
+            creadorPorProyecto.set(c.Proyecto.id_proyecto, {
+                id: c.Usuario.id_usuario,
+                name: c.Usuario.nombre,
+                email: c.Usuario.correo
+            });
+        });
+
+        const proyectosFormateados = proyectos.map((detalle: DetalleProyectoWithRels) => {
+            const creador = creadorPorProyecto.get(detalle.Proyecto.id_proyecto) || {
                 id: detalle.Usuario.id_usuario,
                 name: detalle.Usuario.nombre,
                 email: detalle.Usuario.correo
-            }
-        }));
+            };
+            return {
+                id: detalle.Proyecto.id_proyecto,
+                name: detalle.Proyecto.titulo,
+                description: null,
+                diagrama_json: detalle.Proyecto.diagrama_json,
+                is_public: false,
+                created_at: detalle.Proyecto.fecha_inicio.toISOString(),
+                updated_at: detalle.Proyecto.fecha_inicio.toISOString(),
+                creator_id: creador.id,
+                estado: detalle.Proyecto.estado,
+                rol: detalle.Permisos.descripcion,
+                creator: {
+                    id: creador.id,
+                    name: creador.name,
+                    email: creador.email
+                }
+            };
+        });
 
         res.json({
             success: true,

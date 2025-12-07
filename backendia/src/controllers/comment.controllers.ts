@@ -25,6 +25,12 @@ export const createComment = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'No tienes acceso a este proyecto' });
         }
 
+        // Sólo docentes pueden crear comentarios en el panel
+        const usuario = await prisma.usuario.findUnique({ where: { id_usuario: userId } });
+        if (!usuario || usuario.rol !== 'docente') {
+            return res.status(403).json({ error: 'Solo los docentes pueden crear comentarios en este panel' });
+        }
+
         const comentario = await prisma.comentario.create({
             data: {
                 id_proyecto: parseInt(id_proyecto),

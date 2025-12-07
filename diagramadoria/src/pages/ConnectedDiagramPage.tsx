@@ -4135,8 +4135,8 @@ const ConnectedDiagramPage: React.FC = () => {
                 onAnalyzeWithAI={handleAnalyzeImageWithAI}
             />
 
-            {/* Panel de Comentarios para Docentes */}
-            {user?.rol === 'docente' && openCommentsPanel && projectId && (
+            {/* Panel de Comentarios (docente y estudiante) */}
+            {openCommentsPanel && projectId && (
                 <div
                     style={{
                         position: 'fixed',
@@ -4186,8 +4186,8 @@ const ConnectedDiagramPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Panel de Calificaciones para Docentes */}
-            {user?.rol === 'docente' && openGradePanel && projectId && (
+            {/* Panel de Calificaciones (docente: edita, estudiante: solo lectura) */}
+            {openGradePanel && projectId && (
                 <div
                     style={{
                         position: 'fixed',
@@ -4232,13 +4232,13 @@ const ConnectedDiagramPage: React.FC = () => {
                         </button>
                     </div>
                     <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-                        <GradePanel projectId={parseInt(projectId)} />
+                        <GradePanel projectId={parseInt(projectId)} viewOnly={user?.rol !== 'docente'} />
                     </div>
                 </div>
             )}
 
-            {/* Botones flotantes para Docentes */}
-            {user?.rol === 'docente' && (
+            {/* Botones flotantes para comentarios y calificación */}
+            {(
                 <div
                     style={{
                         position: 'fixed',
@@ -4305,7 +4305,7 @@ const ConnectedDiagramPage: React.FC = () => {
                             e.currentTarget.style.transform = 'scale(1)';
                             e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
                         }}
-                        title="Calificar"
+                        title={user?.rol === 'docente' ? 'Calificar' : 'Ver calificación'}
                     >
                         📊
                     </button>

@@ -114,33 +114,7 @@ const CommentPanel: React.FC<CommentPanelProps> = ({
                 </h3>
             </div>
 
-            {/* Formulario para nuevo comentario */}
-            <form onSubmit={handleSubmit} className="comment-form">
-                <div className="form-group">
-                    <label>Tipo:</label>
-                    <select
-                        value={commentType}
-                        onChange={(e) => setCommentType(e.target.value as any)}
-                        className="comment-type-select"
-                    >
-                        <option value="comentario">💬 Comentario</option>
-                        <option value="correccion">✏️ Corrección</option>
-                        <option value="sugerencia">💡 Sugerencia</option>
-                    </select>
-                </div>
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={user?.rol === 'docente' ? 'Escribe una corrección o sugerencia...' : 'Escribe un comentario...'}
-                    className="comment-textarea"
-                    rows={3}
-                />
-                <button type="submit" disabled={loading} className="btn-submit-comment">
-                    {loading ? 'Enviando...' : 'Enviar comentario'}
-                </button>
-            </form>
-
-            {/* Lista de comentarios */}
+            {/* Lista de comentarios (arriba para que sea lo primero visible) */}
             <div className="comments-list">
                 {comments.length === 0 ? (
                     <p className="no-comments">No hay comentarios aún</p>
@@ -197,6 +171,40 @@ const CommentPanel: React.FC<CommentPanelProps> = ({
                     ))
                 )}
             </div>
+
+            {/* Formulario para nuevo comentario (abajo) */}
+            {user?.rol === 'docente' ? (
+                <form onSubmit={handleSubmit} className="comment-form">
+                    <div className="form-group">
+                        <label>Tipo:</label>
+                        <select
+                            value={commentType}
+                            onChange={(e) => setCommentType(e.target.value as any)}
+                            className="comment-type-select"
+                        >
+                            <option value="comentario">💬 Comentario</option>
+                            <option value="correccion">✏️ Corrección</option>
+                            <option value="sugerencia">💡 Sugerencia</option>
+                        </select>
+                    </div>
+                    <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Escribe una corrección o sugerencia para el estudiante..."
+                        className="comment-textarea"
+                        rows={3}
+                    />
+                    <button type="submit" disabled={loading} className="btn-submit-comment">
+                        {loading ? 'Enviando...' : 'Enviar comentario'}
+                    </button>
+                </form>
+            ) : (
+                <div className="comment-form" style={{ background: '#fff', borderTop: '1px solid #e0e0e0' }}>
+                    <p style={{ margin: 0, color: '#666', fontSize: 14 }}>
+                        Este panel es para el feedback del docente. Puedes marcar comentarios como Resuelto o Descartado cuando los atiendas.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };
