@@ -132,14 +132,12 @@ const ConnectedDiagramPage: React.FC = () => {
     };
 
     const handleAnalyzeImageWithAI = async (file: File, result?: any) => {
-        console.log('Analizando imagen con IA:', file.name);
         try {
             if (!graph || !paper) {
                 alert('El lienzo del diagrama aún no está listo. Intenta nuevamente.');
                 return;
             }
 
-            // Si el modal nos envía el JSON/Modelo, úsalo para pintar automáticamente
             const pInst = paper;
             const gInst = graph;
 
@@ -148,14 +146,12 @@ const ConnectedDiagramPage: React.FC = () => {
 
             let incoming: any = result;
             if (typeof incoming === 'string') {
-                try { incoming = JSON.parse(incoming); } catch { /* ignore */ }
+                try { incoming = JSON.parse(incoming); } catch { }
             }
 
             if (incoming && Array.isArray(incoming.classes)) {
-                // Modelo estructurado
                 const showButtons = roleRef.current === 'creador' || roleRef.current === 'editor';
                 renderFromModel(incoming as DiagramModel, gInst, showButtons);
-                // Broadcast to collaborators
                 const pidNum = projectId ? Number(projectId) : Number(getActiveProjectId() || 0);
                 if (pidNum) {
                     try { if (socketService.isConnected() && !socketService.isInProject(pidNum)) socketService.joinProject(pidNum); } catch { }
@@ -175,11 +171,10 @@ const ConnectedDiagramPage: React.FC = () => {
                     scheduleAutoSave();
                 }
             } else if (incoming && typeof incoming === 'object') {
-                // Posible JSON de joint.js (cells)
                 const normalized = normalizeDiagramJSON(incoming);
                 try { gInst.fromJSON(normalized); } catch { }
+                try { updateAllElementsStyle(gInst); } catch { }
                 rebuildStateFromGraph(gInst);
-                // Broadcast as structured model after rebuilding
                 const pidNum = projectId ? Number(projectId) : Number(getActiveProjectId() || 0);
                 if (pidNum) {
                     try { if (socketService.isConnected() && !socketService.isInProject(pidNum)) socketService.joinProject(pidNum); } catch { }
@@ -212,7 +207,6 @@ const ConnectedDiagramPage: React.FC = () => {
                 applyingRemoteRef.current = false;
             }, 150);
 
-            // Cerrar el modal si sigue abierto
             setShowImportImageModal(false);
         } catch (error) {
             console.error('Error al aplicar resultado de IA:', error);
@@ -464,9 +458,9 @@ const ConnectedDiagramPage: React.FC = () => {
         rect.position(x, y);
         rect.resize(width, height);
         rect.attr({
-            body: { fill: '#fff', stroke: '#3986d3', strokeWidth: 2, rx: 20, ry: 20, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#3986d3', opacity: 0.15 } } },
-            label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#2477c3', fontFamily: 'monospace', xAlignment: 'middle' },
-            idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#2477c3', rx: 4, ry: 4 },
+            body: { fill: '#FFF9E6', stroke: '#000000', strokeWidth: 2, rx: 0, ry: 0, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#D4A574', opacity: 0.12 } } },
+            label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#000000', fontFamily: 'monospace', xAlignment: 'middle' },
+            idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#D4A574', rx: 2, ry: 2 },
             idBadge: { text: String(displayId), x: 23, y: 23, fontSize: 12, fontWeight: 'bold', fill: '#ffffff', textAnchor: 'middle' }
         });
         rect.markup = [
@@ -1769,11 +1763,11 @@ const ConnectedDiagramPage: React.FC = () => {
 
             rect.attr({
                 body: {
-                    fill: '#fff', stroke: '#3986d3', strokeWidth: 2, rx: 20, ry: 20,
-                    filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#3986d3', opacity: 0.15 } }
+                    fill: '#FFF9E6', stroke: '#000000', strokeWidth: 2, rx: 0, ry: 0,
+                    filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#D4A574', opacity: 0.12 } }
                 },
-                label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#2477c3', fontFamily: 'monospace', xAlignment: 'middle' },
-                idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#2477c3', rx: 4, ry: 4 },
+                label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#000000', fontFamily: 'monospace', xAlignment: 'middle' },
+                idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#D4A574', rx: 2, ry: 2 },
                 idBadge: { text: String(node.displayId), x: 23, y: 23, fontSize: 12, fontWeight: 'bold', fill: '#ffffff', textAnchor: 'middle' }
             });
 
@@ -1960,9 +1954,9 @@ const ConnectedDiagramPage: React.FC = () => {
         rect.position(node.position.x, node.position.y);
         rect.resize(width, height);
         rect.attr({
-            body: { fill: '#fff', stroke: '#3986d3', strokeWidth: 2, rx: 20, ry: 20, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#3986d3', opacity: 0.15 } } },
-            label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#2477c3', fontFamily: 'monospace', xAlignment: 'middle' },
-            idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#2477c3', rx: 4, ry: 4 },
+            body: { fill: '#FFF9E6', stroke: '#000000', strokeWidth: 2, rx: 0, ry: 0, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#D4A574', opacity: 0.12 } } },
+            label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#000000', fontFamily: 'monospace', xAlignment: 'middle' },
+            idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#D4A574', rx: 2, ry: 2 },
             idBadge: { text: String(node.displayId), x: 23, y: 23, fontSize: 12, fontWeight: 'bold', fill: '#ffffff', textAnchor: 'middle' }
         });
         const baseMarkup: any[] = [{ tagName: 'rect', selector: 'body' }, { tagName: 'text', selector: 'label' }, { tagName: 'rect', selector: 'idBg' }, { tagName: 'text', selector: 'idBadge' }];
@@ -1989,6 +1983,22 @@ const ConnectedDiagramPage: React.FC = () => {
         };
     };
 
+    // Aplicar estilo amarillo/negro a elementos existentes (útil al cargar diagramas antiguos)
+    const updateAllElementsStyle = (g: any) => {
+        try {
+            const els = g && typeof g.getElements === 'function' ? g.getElements() : [];
+            els.forEach((el: any) => {
+                try {
+                    el.attr({
+                        body: { fill: '#FFF9E6', stroke: '#000000', strokeWidth: 2, rx: 0, ry: 0, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#D4A574', opacity: 0.12 } } },
+                        label: { fill: '#000000' },
+                        idBg: { fill: '#D4A574' }
+                    });
+                } catch { }
+            });
+        } catch { }
+    };
+
     // Helper: add a single relation to the graph/state
     const addRelationLink = (rel: UMLRelation, g: joint.dia.Graph) => {
         const origenEl = classesRef.current.find(c => c.displayId === rel.fromDisplayId)?.element;
@@ -2000,8 +2010,10 @@ const ConnectedDiagramPage: React.FC = () => {
         let lineAttrs: any = { stroke: '#0b132b', strokeWidth: 2 };
         if (rel.type === 'herencia') {
             lineAttrs.targetMarker = { type: 'path', d: 'M 15 0 L 0 -10 L 0 10 Z', fill: '#ffffff', stroke: '#0b132b', strokeWidth: 2 };
-        } else if (rel.type === 'agregacion' || rel.type === 'composicion') {
+        } else if (rel.type === 'agregacion') {
             lineAttrs.targetMarker = { type: 'path', d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z', fill: '#ffffff', stroke: '#0b132b', strokeWidth: 2 };
+        } else if (rel.type === 'composicion') {
+            lineAttrs.targetMarker = { type: 'path', d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z', fill: '#0b132b', stroke: '#0b132b', strokeWidth: 2 };
         }
         link.attr({ line: lineAttrs });
         if (rel.type === 'asociacion') {
@@ -2338,49 +2350,10 @@ const ConnectedDiagramPage: React.FC = () => {
         rect.position(x, y);
         rect.resize(width, height);
         rect.attr({
-            body: {
-                fill: '#fff',
-                stroke: '#3986d3',
-                strokeWidth: 2,
-                rx: 20,
-                ry: 20,
-                filter: {
-                    name: 'dropShadow',
-                    args: {
-                        dx: 0,
-                        dy: 2,
-                        blur: 2,
-                        color: '#3986d3',
-                        opacity: 0.15
-                    }
-                }
-            },
-            label: {
-                text: labelText,
-                fontWeight: 'bold',
-                fontSize: fontSize,
-                fill: '#2477c3',
-                fontFamily: 'monospace',
-                xAlignment: 'middle'
-            },
-            idBg: {
-                x: 10,
-                y: 10,
-                width: 26,
-                height: 18,
-                fill: '#2477c3',
-                rx: 4,
-                ry: 4
-            },
-            idBadge: {
-                text: String(displayId),
-                x: 23,
-                y: 23,
-                fontSize: 12,
-                fontWeight: 'bold',
-                fill: '#ffffff',
-                textAnchor: 'middle'
-            }
+            body: { fill: '#FFF9E6', stroke: '#000000', strokeWidth: 2, rx: 0, ry: 0, filter: { name: 'dropShadow', args: { dx: 0, dy: 2, blur: 2, color: '#D4A574', opacity: 0.12 } } },
+            label: { text: labelText, fontWeight: 'bold', fontSize, fill: '#000000', fontFamily: 'monospace', xAlignment: 'middle' },
+            idBg: { x: 10, y: 10, width: 26, height: 18, fill: '#D4A574', rx: 2, ry: 2 },
+            idBadge: { text: String(displayId), x: 23, y: 23, fontSize: 12, fontWeight: 'bold', fill: '#ffffff', textAnchor: 'middle' }
         });
 
         // Botones SVG editar y eliminar
@@ -2392,38 +2365,8 @@ const ConnectedDiagramPage: React.FC = () => {
             {
                 tagName: 'g',
                 children: [
-                    {
-                        tagName: 'text',
-                        selector: 'editIcon',
-                        className: 'edit-btn',
-                        attributes: {
-                            class: 'edit-btn',
-                            x: width - 55,
-                            y: 22,
-                            fontSize: 20,
-                            fill: '#007bff',
-                            fontWeight: 'bold',
-                            textAnchor: 'middle',
-                            cursor: 'pointer',
-                        },
-                        textContent: '⚙️'
-                    },
-                    {
-                        tagName: 'text',
-                        selector: 'deleteIcon',
-                        className: 'delete-btn',
-                        attributes: {
-                            class: 'delete-btn',
-                            x: width - 30,
-                            y: 22,
-                            fontSize: 20,
-                            fill: '#dc3545',
-                            fontWeight: 'bold',
-                            textAnchor: 'middle',
-                            cursor: 'pointer',
-                        },
-                        textContent: '❌'
-                    }
+                    { tagName: 'text', selector: 'editIcon', className: 'edit-btn', attributes: { class: 'edit-btn', x: width - 55, y: 22, fontSize: 20, fill: '#007bff', fontWeight: 'bold', textAnchor: 'middle', cursor: 'pointer' }, textContent: '⚙️' },
+                    { tagName: 'text', selector: 'deleteIcon', className: 'delete-btn', attributes: { class: 'delete-btn', x: width - 30, y: 22, fontSize: 20, fill: '#dc3545', fontWeight: 'bold', textAnchor: 'middle', cursor: 'pointer' }, textContent: '❌' }
                 ]
             }
         ];
@@ -2493,22 +2436,10 @@ const ConnectedDiagramPage: React.FC = () => {
             };
         } else if (relationType === 'agregacion') {
             // Agregación: rombo hueco
-            lineAttrs.targetMarker = {
-                type: 'path',
-                d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z',
-                fill: '#ffffff',
-                stroke: '#0b132b',
-                strokeWidth: 2
-            };
+            lineAttrs.targetMarker = { type: 'path', d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z', fill: '#ffffff', stroke: '#0b132b', strokeWidth: 2 };
         } else if (relationType === 'composicion') {
-            // Composición: rombo sólido
-            lineAttrs.targetMarker = {
-                type: 'path',
-                d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z',
-                fill: '#ffffff',
-                stroke: '#0b132b',
-                strokeWidth: 2
-            };
+            // Composición: rombo sólido (relleno igual al color del trazo)
+            lineAttrs.targetMarker = { type: 'path', d: 'M 0 0 L 10 -7 L 20 0 L 10 7 Z', fill: '#0b132b', stroke: '#0b132b', strokeWidth: 2 };
         }
         link.attr({ line: lineAttrs });
         // Etiquetas: SOLO para Asociación (cardinalidades y verbo)
