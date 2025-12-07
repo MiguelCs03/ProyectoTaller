@@ -26,6 +26,36 @@ export type DiagramModel = {
   classes: UMLClassNode[];
   relations: UMLRelation[];
 };
+
+// --- Tipos Auxiliares para evitar el uso de 'any' en las respuestas de la IA ---
+interface RawAttributeJson {
+  name?: string;
+  type?: string;
+  reason?: string;
+}
+
+interface RawClassJson {
+  name?: string;
+  attributes?: RawAttributeJson[];
+  reason?: string;
+}
+
+interface RawRelationJson {
+  originName?: string;
+  destName?: string;
+  relationType?: string;
+  originCard?: string;
+  destCard?: string;
+  verb?: string;
+  reason?: string;
+}
+
+interface RawAttrSuggestionJson {
+  displayId?: number | string;
+  className?: string;
+  attributes?: RawAttributeJson[];
+}
+
 // Aplica una acción sugerida al modelo de diagrama UML
 export function applyActionToDiagram(action: ActionSuggestion, diagram: DiagramModel): DiagramModel {
   let updated = { ...diagram, classes: [...diagram.classes], relations: [...diagram.relations] };
@@ -119,8 +149,10 @@ export function applyActionToDiagram(action: ActionSuggestion, diagram: DiagramM
       break;
     }
     case 'delete_relation': {
-      const originId = action.originNumber ?? resolveDisplayIdByName((action as any).originName);
-      const destId = action.destNumber ?? resolveDisplayIdByName((action as any).destName);
+      // Casteo seguro usando 'unknown' intermedio para propiedades opcionales en tipos union
+      const act = action as { originName?: string; destName?: string };
+      const originId = action.originNumber ?? resolveDisplayIdByName(act.originName);
+      const destId = action.destNumber ?? resolveDisplayIdByName(act.destName);
       updated.relations = updated.relations.filter(r => !(r.fromDisplayId === originId && r.toDisplayId === destId));
       break;
     }
@@ -203,7 +235,6 @@ export function applyActionToDiagram(action: ActionSuggestion, diagram: DiagramM
       }
       break;
     }
-    // Puedes añadir más casos: eliminar clase, actualizar atributos, etc.
     default:
       break;
   }
@@ -295,8 +326,30 @@ export type RelationSuggestion = {
 };
 
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+const USE_OPENAI = (import.meta.env.VITE_USE_OPENAI === 'true');
+const USE_PROXY_ML = (import.meta.env.VITE_USE_PROXY_ML === 'true');
 
-if (!OPENAI_API_KEY) {
+// Interfaz para tipar el entorno de Vite
+interface ViteEnv {
+  VITE_ML_API_BASE?: string;
+  VITE_USE_PROXY_ML?: string;
+}
+
+function getMLBase(): string {
+  // Casteo seguro en lugar de 'as any'
+  const env = (import.meta as unknown as { env: ViteEnv }).env;
+  const envBase = env?.VITE_ML_API_BASE || 'http://localhost:5000';
+  
+  // Auto-proxy in Vite dev on :5173 unless explicitly disabled
+  const isViteDev = typeof window !== 'undefined' && window.location && window.location.port === '5173';
+  const base = (USE_PROXY_ML || (!env?.VITE_USE_PROXY_ML && isViteDev)) ? '/ml' : envBase;
+  if (typeof window !== 'undefined') {
+    try { console.info(`[ML] Base: ${base} | USE_OPENAI=${USE_OPENAI}`); } catch {}
+  }
+  return base;
+}
+
+if (!USE_OPENAI || !OPENAI_API_KEY) {
   // eslint-disable-next-line no-console
   console.warn('VITE_OPENAI_API_KEY is not set. AI features will be disabled.');
 }
@@ -359,7 +412,8 @@ function extractFirstJsonString(text: string): string | undefined {
   return undefined;
 }
 
-function tryParseFirstJson<T = any>(text: string): T | undefined {
+// Eliminado el default 'any'. Ahora es genérico puro o unknown.
+function tryParseFirstJson<T = unknown>(text: string): T | undefined {
   const s = extractFirstJsonString(text);
   if (!s) return undefined;
   try {
@@ -372,7 +426,6 @@ function tryParseFirstJson<T = any>(text: string): T | undefined {
 // Very small prompt to extract intents. In production, move this logic server-side and improve schema validation.
 const SYSTEM_PROMPT = `Eres un asistente que transforma instrucciones en español sobre diagramas UML
 (clases, atributos, métodos y relaciones) a una sola acción JSON. Responde SOLO con JSON válido.
-
 Robustez requerida:
 - Acepta errores ortográficos o de audio comunes (ASR). Interpreta "tabla", "entidad", "modelo" como clase.
 - Reconoce comandos de eliminación: "eliminar", "borrar", "quitar", "remover", "delete", "remove" seguidos de "clase", "tabla" y número o nombre.
@@ -391,7 +444,6 @@ Robustez requerida:
 - Normaliza relación a: asociacion | herencia | agregacion | composicion.
 - Cardinalidades preferidas: 0..1, 1..1, 1..*, 0..*, *.
   - Si la relación es "asociacion" y NO se especifica cardinalidad, usa 1..1 por defecto en ambos extremos.
-
 Tipos de acción:
 - { "type": "create_class", "name": string, "attributes"?: [{"name": string, "type": "Int|Float|String|Bool|Date|DateTime"}], "methods"?: [{"name": string, "returns": string}] }
 - { "type": "delete_class", "targetNumber"?: number, "targetName"?: string }
@@ -407,40 +459,6 @@ Tipos de acción:
 - { "type": "update_relation", "originNumber"?: number, "destNumber"?: number, "originName"?: string, "destName"?: string, "relationType"?: "asociacion"|"herencia"|"agregacion"|"composicion", "originCard"?: string, "destCard"?: string, "verb"?: string }
 - { "type": "delete_relation", "originNumber"?: number, "destNumber"?: number, "originName"?: string, "destName"?: string }
 Si no entiendes, usa {"type": "noop"}.
-
-Ejemplos:
-Usuario: crea clase Cliente con atributos nombre, edad y métodos comprar():void
-JSON: {"type":"create_class","name":"Cliente","attributes":[{"name":"nombre","type":"String"},{"name":"edad","type":"Int"}],"methods":[{"name":"comprar","returns":"void"}]}
-Usuario: nueva tabla Casa atributos: id, color, altura
-JSON: {"type":"create_class","name":"Casa","attributes":[{"name":"id","type":"Int"},{"name":"color","type":"String"},{"name":"altura","type":"Float"}]}
-Usuario: relaciona 1 con 2 como herencia 1..* a 1..1
-JSON: {"type":"create_relation","originNumber":1,"destNumber":2,"relationType":"herencia","originCard":"1..*","destCard":"1..1"}
-Usuario: eliminar clase 1
-JSON: {"type":"delete_class","targetNumber":1}
-Usuario: eliminar clase Persona
-JSON: {"type":"delete_class","targetName":"Persona"}
-Usuario: borra la tabla Usuario
-JSON: {"type":"delete_class","targetName":"Usuario"}
-Usuario: quitar clase 3
-JSON: {"type":"delete_class","targetNumber":3}
-Usuario: añadir atributo nombre a la clase 2
-JSON: {"type":"add_attribute","targetNumber":2,"attribute":{"name":"nombre","type":"String"}}
-Usuario: agregar atributo id, edad a clase Usuario
-JSON: {"type":"add_attribute","targetNumber":null,"targetName":"Usuario","attribute":{"name":"id","type":"Int"}}
-Usuario: añade atributo precio tipo Float a clase 1
-JSON: {"type":"add_attribute","targetNumber":1,"attribute":{"name":"precio","type":"Float"}}
-Usuario: actualizar atributo nombre por nombreCompleto en clase 2
-JSON: {"type":"update_attribute","targetNumber":2,"fromName":"nombre","toName":"nombreCompleto"}
-Usuario: cambiar tipo de edad a Float en clase Persona
-JSON: {"type":"update_attribute","targetName":"Persona","fromName":"edad","dataType":"Float"}
-Usuario: eliminar atributo edad de clase 1
-JSON: {"type":"delete_attribute","targetNumber":1,"name":"edad"}
-Usuario: borrar atributo nombre de clase Usuario
-JSON: {"type":"delete_attribute","targetName":"Usuario","name":"nombre"}
-Usuario: agregar método calcular():Float a clase 2
-JSON: {"type":"add_method","targetNumber":2,"method":{"name":"calcular","returns":"Float"}}
-Usuario: eliminar método calcular de clase 1
-JSON: {"type":"delete_method","targetNumber":1,"name":"calcular"}
 `;
 
 function removeAccents(str: string) {
@@ -561,7 +579,7 @@ export async function suggestActionFromText(userText: string): Promise<ActionSug
     if (!content) return { type: 'noop' };
 
     // Robust JSON extraction
-    let parsed: any = undefined;
+    let parsed: unknown = undefined;
     try {
       parsed = JSON.parse(content);
     } catch {
@@ -571,7 +589,8 @@ export async function suggestActionFromText(userText: string): Promise<ActionSug
     // If model answered with an array of actions, take the first
     if (Array.isArray(parsed)) parsed = parsed[0];
 
-    if (parsed && typeof parsed === 'object' && typeof parsed.type === 'string') {
+    // Verificación segura de tipo en lugar de chequear 'any'
+    if (parsed && typeof parsed === 'object' && 'type' in parsed && typeof (parsed as {type: unknown}).type === 'string') {
       return normalizeSuggestion(parsed as ActionSuggestion);
     }
   } catch (e) {
@@ -596,7 +615,6 @@ Responde SOLO con un arreglo JSON ([]). Cada elemento debe seguir UNO de estos f
 - { "type": "delete_method", "targetNumber"?: number, "targetName"?: string, "name": string }
 - { "type": "create_relation", "originNumber": number, "destNumber": number, "relationType": "asociacion"|"herencia"|"agregacion"|"composicion", "originCard"?: string, "destCard"?: string, "verb"?: string }
 - { "type": "delete_relation", "originNumber": number, "destNumber": number }
-
 Reglas:
 - Si la instrucción menciona varias clases/tablas (separadas por comas o conectores), devuelve múltiples objetos create_class (uno por clase).
 - Si la instrucción menciona múltiples atributos separados por comas (ej: "id, nombre, edad"), devuelve múltiples objetos add_attribute (uno por atributo).
@@ -604,31 +622,7 @@ Reglas:
 - Reconoce comandos de atributos: "añadir", "agregar", "eliminar", "borrar", "actualizar", "cambiar" seguidos de "atributo", "campo", "propiedad".
 - Normaliza tipos de atributos y relación como en el prompt anterior. Si asociación sin cardinalidades, usa 1..1 por defecto.
 - Si no entiendes, devuelve [].
-Ejemplos:
-Entrada: "crear tabla Usuario, crear tabla Producto y Factura"
-Salida: [
-  {"type":"create_class","name":"Usuario"},
-  {"type":"create_class","name":"Producto"},
-  {"type":"create_class","name":"Factura"}
-]
-Entrada: "eliminar clase 1 y eliminar clase Persona"
-Salida: [
-  {"type":"delete_class","targetNumber":1},
-  {"type":"delete_class","targetName":"Persona"}
-]
-Entrada: "relaciona 1 con 2 como composicion 1..* a 1..1"
-Salida: [{"type":"create_relation","originNumber":1,"destNumber":2,"relationType":"composicion","originCard":"1..*","destCard":"1..1"}]
-Entrada: "añadir atributo id, nombre, edad a la clase 2"
-Salida: [
-  {"type":"add_attribute","targetNumber":2,"attribute":{"name":"id","type":"Int"}},
-  {"type":"add_attribute","targetNumber":2,"attribute":{"name":"nombre","type":"String"}},
-  {"type":"add_attribute","targetNumber":2,"attribute":{"name":"edad","type":"Int"}}
-]
-Entrada: "eliminar atributo nombre de clase 1 y agregar atributo precio a clase 2"
-Salida: [
-  {"type":"delete_attribute","targetNumber":1,"name":"nombre"},
-  {"type":"add_attribute","targetNumber":2,"attribute":{"name":"precio","type":"Float"}}
-]`;
+`;
 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -650,15 +644,15 @@ Salida: [
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
     if (!content) return [];
-    let arr = tryParseFirstJson<any>(content);
+    let arr = tryParseFirstJson<unknown>(content);
     if (!Array.isArray(arr)) {
       // sometimes returns a single object
       if (arr && typeof arr === 'object') arr = [arr]; else return [];
     }
-    return (arr as any[])
+    return (arr as unknown[])
       .filter(Boolean)
       .map(a => normalizeSuggestion(a as ActionSuggestion))
-      .filter(a => a && typeof (a as any).type === 'string');
+      .filter(a => a && typeof (a as {type?: unknown}).type === 'string');
   } catch (e) {
     console.error('AI suggestActions error', e);
     return [];
@@ -704,16 +698,65 @@ export async function suggestAttributesForClasses(
   projectTitle: string,
   classes: Array<{ displayId: number; name: string; attributes?: Array<{ name: string; type: string }> }>
 ): Promise<AttributeSuggestion[]> {
-  if (!OPENAI_API_KEY) return [];
+  // Prefer local ML microservice unless USE_OPENAI=true
+  const ML_BASE = getMLBase();
+  if (!USE_OPENAI && ML_BASE) {
+    const guessType = (n: string): string => {
+      const s = n.toLowerCase();
+      if (/(^|_)id$/.test(s) || s.endsWith('_id')) return 'Int';
+      if (/(fecha|date|time|created|updated)/.test(s)) return s.includes('time') ? 'DateTime' : 'Date';
+      if (/(monto|precio|amount|price|saldo|balance)/.test(s)) return 'Float';
+      if (/(cantidad|qty|quantity|stock|numero|number)/.test(s)) return 'Int';
+      if (/(activo|active|enabled|is_|has_)/.test(s)) return 'Bool';
+      return 'String';
+    };
+
+    try {
+      const results: AttributeSuggestion[] = [];
+      for (const cls of classes) {
+        const existingForThis = (classes || []).filter(c => c.displayId !== cls.displayId);
+        const payload = {
+          tabla: cls.name,
+          tablas_existentes: existingForThis.map(e => ({
+            nombre: e.name,
+            atributos: (e.attributes || []).map(a => a.name)
+          }))
+        };
+        const url = `${ML_BASE}/predict/atributos`;
+        try { console.info('[ML] atributos ->', url, payload); } catch (err) {}
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          // eslint-disable-next-line no-console
+          console.error('ML atributos error', res.status, await res.text());
+          continue;
+        }
+        const data = await res.json();
+        const attrs: unknown[] = Array.isArray(data?.atributos) ? data.atributos : [];
+        const mapped = attrs
+          .map(a => String(a).trim())
+          .filter(a => !!a)
+          .map(a => ({ name: a, type: guessType(a) }));
+        results.push({ displayId: cls.displayId, className: cls.name, attributes: mapped });
+      }
+      return results;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Local ML fallback (atributos) failed', e);
+      return [];
+    }
+  }
+  if (!USE_OPENAI || !OPENAI_API_KEY) return [];
 
   const sys = `Eres un experto en modelado de dominio. Te daré el TÍTULO del proyecto y un listado de CLASES (con algunos atributos si existen).
 Devuelve SOLO JSON con sugerencias de atributos RELEVANTES por clase, coherentes con el dominio implícito en el título y los nombres de clase.
-
 Formato de salida (JSON estricto):
 [
   { "displayId": number, "className": string, "attributes": [ { "name": string, "type": "Int|Float|String|Bool|Date|DateTime", "reason"?: string } ] }
 ]
-
 Reglas:
 - No dupliques atributos existentes (te paso los actuales, evítalos por nombre).
 - Máximo 5 atributos nuevos por clase.
@@ -750,20 +793,23 @@ Reglas:
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
     if (!content) return [];
-    const parsed = tryParseFirstJson<any>(content);
+    
+    // Aquí es donde solucionamos el 'any' usando el tipo RawAttrSuggestionJson
+    const parsed = tryParseFirstJson<RawAttrSuggestionJson[]>(content);
+    
     if (Array.isArray(parsed)) {
       // Basic sanitize: ensure correct shapes
       return parsed
-        .map((r: any) => ({
+        .map((r) => ({
           displayId: Number(r?.displayId),
           className: String(r?.className || ''),
-          attributes: Array.isArray(r?.attributes) ? r.attributes.map((a: any) => ({
+          attributes: Array.isArray(r?.attributes) ? r.attributes.map((a) => ({
             name: String(a?.name || '').trim(),
             type: normalizeAttrType(String(a?.type || ''), String(a?.name || '')),
             reason: a?.reason ? String(a.reason) : undefined
           })) : []
         }))
-        .filter((r: any) => Number.isFinite(r.displayId) && r.className);
+        .filter((r) => Number.isFinite(r.displayId) && r.className);
     }
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -777,16 +823,53 @@ export async function suggestClassesFromProjectTitle(
   projectTitle: string,
   existingClasses: string[]
 ): Promise<ClassSuggestion[]> {
-  if (!OPENAI_API_KEY) return [];
+  const ML_BASE = getMLBase();
+  // Use local ML microservice unless USE_OPENAI=true
+  if (!USE_OPENAI && ML_BASE) {
+    const guessType = (n: string): string => {
+      const s = n.toLowerCase();
+      if (/(^|_)id$/.test(s) || s.endsWith('_id')) return 'Int';
+      if (/(fecha|date|time|created|updated)/.test(s)) return s.includes('time') ? 'DateTime' : 'Date';
+      if (/(monto|precio|amount|price|saldo|balance)/.test(s)) return 'Float';
+      if (/(cantidad|qty|quantity|stock|numero|number)/.test(s)) return 'Int';
+      if (/(activo|active|enabled|is_|has_)/.test(s)) return 'Bool';
+      return 'String';
+    };
+    try {
+      const url = `${ML_BASE}/suggest/classes`;
+      try { console.info('[ML] clases ->', url, { project_title: projectTitle, existing_classes: existingClasses, max: 6 }); } catch {}
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_title: projectTitle, existing_classes: existingClasses, max: 6 })
+      });
+      if (!res.ok) {
+        // eslint-disable-next-line no-console
+        console.error('ML classes error', res.status, await res.text());
+        return [];
+      }
+      const data = await res.json();
+      const arr: Array<{ name: string; attributes?: string[] }> = Array.isArray(data) ? data : [];
+      return arr
+        .filter(x => x && x.name && !existingClasses.includes(x.name))
+        .map(x => ({
+          name: x.name,
+          attributes: (x.attributes || []).map(a => ({ name: a, type: guessType(a) }))
+        }));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Local ML (classes) failed', e);
+      return [];
+    }
+  }
+  if (!USE_OPENAI || !OPENAI_API_KEY) return [];
 
   const sys = `Eres un experto en diseño de bases de datos y modelado de dominio.
 Dado SOLO el TÍTULO de un proyecto y una lista de clases existentes, propone nuevas CLASES (también llamadas entidades/tablas) útiles y coherentes.
-
 Responde SOLO con JSON válido con el siguiente formato:
 [
   { "name": string, "attributes"?: [ { "name": string, "type": "Int|Float|String|Bool|Date|DateTime", "reason"?: string } ], "reason"?: string }
 ]
-
 Reglas:
 - NO repitas clases ya existentes (te paso la lista de existentes).
 - Máximo 6 clases nuevas.
@@ -821,13 +904,16 @@ Reglas:
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
     if (!content) return [];
-    const parsed = tryParseFirstJson<any>(content);
+    
+    // Solución del 'any' usando RawClassJson
+    const parsed = tryParseFirstJson<RawClassJson[]>(content);
+    
     if (Array.isArray(parsed)) {
       return parsed
-        .map((c: any) => ({
+        .map((c) => ({
           name: String(c?.name || '').trim(),
           attributes: Array.isArray(c?.attributes)
-            ? c.attributes.map((a: any) => ({
+            ? c.attributes.map((a) => ({
                 name: String(a?.name || '').trim(),
                 type: normalizeAttrType(String(a?.type || ''), String(a?.name || '')),
                 reason: a?.reason ? String(a.reason) : undefined
@@ -853,12 +939,10 @@ export async function suggestRelationsFromProjectTitle(
 
   const sys = `Eres un experto en modelado conceptual. Dado el TÍTULO del proyecto y la lista de CLASES existentes,
 propón RELACIONES entre dichas clases.
-
 Responde SOLO con JSON con este formato:
 [
   { "originName": string, "destName": string, "relationType": "asociacion"|"herencia"|"agregacion"|"composicion", "originCard"?: string, "destCard"?: string, "verb"?: string, "reason"?: string }
 ]
-
 Reglas:
 - Usa solo nombres de la lista proporcionada (no inventes clases nuevas).
 - Si "relationType" es "asociacion" y NO especificas cardinalidades, se asume 1..1 en ambos extremos.
@@ -892,10 +976,13 @@ Reglas:
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
     if (!content) return [];
-    const parsed = tryParseFirstJson<any>(content);
+    
+    // Solución del 'any' usando RawRelationJson
+    const parsed = tryParseFirstJson<RawRelationJson[]>(content);
+    
     if (Array.isArray(parsed)) {
       return parsed
-        .map((r: any) => ({
+        .map((r) => ({
           originName: String(r?.originName || '').trim(),
           destName: String(r?.destName || '').trim(),
           relationType: normalizeRelationType(String(r?.relationType || 'asociacion')),
